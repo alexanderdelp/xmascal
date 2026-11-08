@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adventskalender</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@700&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #14231c;
+    --text: #f6efe2;
+    --tuer: #b3262d;
+    --tuer-rand: #f2d38a;
+    --tuer-zu: rgba(40, 40, 40, .55);
+    --overlay: rgba(10, 16, 13, .8);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh;
+    background: var(--bg) radial-gradient(circle at 50% 0%, #22392d, var(--bg) 70%);
+    color: var(--text);
+    font-family: Nunito, system-ui, sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 16px;
+  }
+  h1 {
+    font-family: "Mountains of Christmas", Georgia, serif;
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    margin: .2em 0 .4em; color: var(--tuer-rand);
+    text-shadow: 0 2px 10px rgba(0,0,0,.5);
+  }
+  #kalender {
+    position: relative; width: 100%; max-width: 1100px;
+    border-radius: 14px; overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,.5);
+  }
+  #kalender > img { display: block; width: 100%; height: auto; user-select: none; }
+
+  .tuer {
+    position: absolute; perspective: 800px;
+    container-type: size;
+  }
+  .tuer .innen {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,.45);
+    border: 2px dashed var(--tuer-rand); border-radius: 6px;
+  }
+  .tuer button {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    border: 2px solid var(--tuer-rand); border-radius: 6px;
+    background: linear-gradient(135deg, #c8343b, var(--tuer) 60%, #8e1b21);
+    color: var(--tuer-rand);
+    font: 700 clamp(14px, 45cqh, 48px) "Mountains of Christmas", Georgia, serif;
+    cursor: pointer; padding: 0;
+    transform-origin: left center;
+    transition: transform .7s cubic-bezier(.3,.7,.3,1), box-shadow .2s, filter .2s;
+    box-shadow: 0 3px 8px rgba(0,0,0,.4);
+    backface-visibility: hidden;
+  }
+  .tuer.gross button { background: linear-gradient(135deg, #e0b84e, #c99a2e 60%, #9c7419); color: #5a1014; }
+  .tuer button:hover:not(:disabled) { filter: brightness(1.15); box-shadow: 0 0 0 3px rgba(242,211,138,.5), 0 3px 8px rgba(0,0,0,.4); }
+  .tuer button:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+  .tuer.gesperrt button { cursor: not-allowed; filter: grayscale(.6) brightness(.75); }
+  .tuer.gesperrt button::after {
+    content: "🔒"; position: absolute; right: 4px; bottom: 2px; font-size: clamp(10px, 22cqh, 20px);
+  }
+  .tuer.offen button { transform: rotateY(-105deg); box-shadow: none; }
+  .tuer.offen .innen { cursor: pointer; }
+  .tuer.offen .innen::before {
+    content: attr(data-nr); position: absolute; inset: 0; display: grid; place-items: center;
+    font: 700 clamp(12px, 35cqh, 36px) "Mountains of Christmas", Georgia, serif; color: var(--tuer-rand);
+  }
+
+  .hinweis { margin-top: 14px; opacity: .8; text-align: center; font-size: .95rem; min-height: 1.4em; }
+  .zuruecksetzen { margin-top: 8px; background: none; border: 1px solid rgba(246,239,226,.35); color: var(--text);
+    border-radius: 999px; padding: 6px 14px; cursor: pointer; font: inherit; font-size: .85rem; opacity: .7; }
+  .zuruecksetzen:hover { opacity: 1; }
+
+  /* Overlay für den Türchen-Inhalt */
+  #overlay {
+    position: fixed; inset: 0; background: var(--overlay);
+    display: none; align-items: center; justify-content: center; padding: 16px; z-index: 10;
+    backdrop-filter: blur(3px);
+  }
+  #overlay.sichtbar { display: flex; animation: einblenden .3s ease; }
+  @keyframes einblenden { from { opacity: 0; } to { opacity: 1; } }
+  #overlay .rahmen {
+    position: relative; width: min(900px, 100%); height: min(700px, 100%);
+    background: #fff; border-radius: 14px; overflow: hidden;
+    border: 4px solid var(--tuer-rand); box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  }
+  #overlay iframe { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
+  #overlay .schliessen {
+    position: absolute; top: 8px; right: 8px; width: 40px; height: 40px; border-radius: 50%;
+    border: 2px solid var(--tuer-rand); background: var(--tuer); color: #fff; font-size: 22px;
+    cursor: pointer; line-height: 1;
+  }
+</style>
+</head>
+<body>
+  <h1>Adventskalender</h1>
+  <div id="kalender" aria-label="Adventskalender mit 24 Türchen">
+    <img id="grafik" alt="">
+  </div>
+  <div class="hinweis" id="hinweis"></div>
+  <button class="zuruecksetzen" id="zuruecksetzen" type="button">Alle Türchen wieder schließen</button>
+
+  <div id="overlay" role="dialog" aria-modal="true" aria-label="Türchen-Inhalt">
+    <div class="rahmen">
+      <iframe id="inhalt" title="Türchen-Inhalt"></iframe>
+      <button class="schliessen" id="schliessen" type="button" aria-label="Schließen">✕</button>
+    </div>
+  </div>
+
+<script src="config.js"></script>
+<script>
+(function () {
+  const cfg = window.KALENDER;
+  const SPEICHER = "adventskalender-geoeffnet";
+  const kalender = document.getElementById("kalender");
+  const overlay = document.getElementById("overlay");
+  const inhalt = document.getElementById("inhalt");
+  const hinweis = document.getElementById("hinweis");
+
+  document.getElementById("grafik").src = cfg.grafik;
+
+  // Welcher Tag ist freigeschaltet? Außerhalb des Monats: keiner (bzw. alle, wenn der Monat vorbei ist).
+  const heute = new Date();
+  let freiBis = 0;
+  if (heute.getMonth() + 1 === cfg.monat) freiBis = heute.getDate();
+  else if (heute.getMonth() + 1 > cfg.monat) freiBis = 24; // gleiches Jahr, Monat schon vorbei
+
+  function geoeffnetLaden() {
+    try { return new Set(JSON.parse(localStorage.getItem(SPEICHER) || "[]")); } catch (e) { return new Set(); }
+  }
+  function geoeffnetSpeichern(set) {
+    try { localStorage.setItem(SPEICHER, JSON.stringify([...set])); } catch (e) {}
+  }
+  const geoeffnet = geoeffnetLaden();
+
+  function dateiFuer(nr) {
+    return cfg.dateien[nr] || cfg.standardDatei.replace("{nr}", nr);
+  }
+
+  function zeigeInhalt(nr) {
+    inhalt.src = dateiFuer(nr);
+    overlay.classList.add("sichtbar");
+    document.getElementById("schliessen").focus();
+  }
+  function schliessen() {
+    overlay.classList.remove("sichtbar");
+    inhalt.src = "about:blank";
+  }
+
+  let hinweisTimer;
+  function zeigeHinweis(text) {
+    hinweis.textContent = text;
+    clearTimeout(hinweisTimer);
+    hinweisTimer = setTimeout(standardHinweis, 3000);
+  }
+  function standardHinweis() {
+    hinweis.textContent = freiBis === 0
+      ? "Noch ist es nicht so weit – ab dem 1. geht's los!"
+      : freiBis >= 24 ? "Alle Türchen sind freigeschaltet." : `Heute ist der ${freiBis}. – du kannst die Türchen 1 bis ${freiBis} öffnen.`;
+  }
+  standardHinweis();
+
+  cfg.tueren.forEach(t => {
+    const el = document.createElement("div");
+    el.className = "tuer" + (t.gross ? " gross" : "");
+    Object.assign(el.style, { left: t.x + "%", top: t.y + "%", width: t.b + "%", height: t.h + "%" });
+
+    const innen = document.createElement("div");
+    innen.className = "innen";
+    innen.dataset.nr = t.nr;
+    innen.addEventListener("click", () => zeigeInhalt(t.nr));
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = t.nr;
+    btn.setAttribute("aria-label", `Türchen ${t.nr}`);
+
+    const frei = t.nr <= freiBis;
+    if (!frei) el.classList.add("gesperrt");
+    if (frei && geoeffnet.has(t.nr)) { el.classList.add("offen"); btn.tabIndex = -1; }
+
+    btn.addEventListener("click", () => {
+      if (!frei) {
+        const tage = cfg.monat === heute.getMonth() + 1 ? t.nr - freiBis : null;
+        zeigeHinweis(tage ? `Geduld! Türchen ${t.nr} öffnet sich erst in ${tage} ${tage === 1 ? "Tag" : "Tagen"}.` : `Türchen ${t.nr} ist noch verschlossen.`);
+        btn.animate([{ transform: "translateX(0)" }, { transform: "translateX(-4px)" }, { transform: "translateX(4px)" }, { transform: "translateX(0)" }], { duration: 300, iterations: 1 });
+        return;
+      }
+      el.classList.add("offen");
+      geoeffnet.add(t.nr); geoeffnetSpeichern(geoeffnet);
+      setTimeout(() => zeigeInhalt(t.nr), 650);
+    });
+
+    el.append(innen, btn);
+    kalender.append(el);
+  });
+
+  document.getElementById("schliessen").addEventListener("click", schliessen);
+  overlay.addEventListener("click", e => { if (e.target === overlay) schliessen(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") schliessen(); });
+
+  document.getElementById("zuruecksetzen").addEventListener("click", () => {
+    geoeffnet.clear(); geoeffnetSpeichern(geoeffnet);
+    document.querySelectorAll(".tuer.offen").forEach(el => {
+      el.classList.remove("offen"); el.querySelector("button").tabIndex = 0;
+    });
+  });
+})();
+</script>
+</body>
+</html>
